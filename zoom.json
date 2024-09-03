@@ -1,0 +1,63 @@
+@Controller
+public class TestController extends BaseController{
+    
+    // 1. zoom data를 받을 url (웹훅 설정에 작성한 url)
+    @RequestMapping(value = "/testApi")
+    public String testApi(HttpServletRequest request, ModelMap model, ZoomWebhookVO zoomWebhookVO) throws Exception{
+    
+    	StringBuffer strBuffer = new StringBuffer();
+        String line = null;
+
+        try {
+            BufferedReader reader = request.getReader();
+            while ((line = reader.readLine()) != null) {
+               strBuffer.append(line);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return e.toString();
+        }
+
+        JsonParser parser = new JsonParser();
+        JsonObject jsonObject = (JsonObject)parser.parse(strBuffer.toString());
+        jsonObject = jsonObject.getAsJsonObject("payload").getAsJsonObject("object").getAsJsonObject("participant");
+        
+        String convertedDate = getConvertedDate(jsonObject.get("leave_time").toString());
+
+        System.out.println("============ testAPI process ==============");
+        System.out.println("user_name : " + jsonObject.get("user_name"));
+        System.out.println("leave_time : " + jsonObject.get("leave_time"));
+        System.out.println("[converted]leave_time : " + convertedDate);
+        System.out.println("user_id : " + jsonObject.get("user_id"));
+        System.out.println("============ testAPI process end ==============");
+        
+        // Webhook 수신을 성공으로 처리하기 위해 JSON String 구성 (리턴 안하면 5분마다 중복으로 데이터 수신됨)
+        return "{'responseCode':'200'}";
+        
+    }
+    
+    // 2. 받은 데이터 - 날짜데이터만 포맷
+    public static String getConvertedDate(String inputDate) {
+        inputDate = inputDate.replaceAll("[a-zA-Z]", " ");// time 구분자 제거
+        inputDate = inputDate.replace("\"", "");// 쌍따옴표 제거
+
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        Date parseDate = null;
+        String convertedDate = null;
+        
+        try {
+            parseDate = format.parse(inputDate);// zoom 나간시간 String --> Date 로 생성
+            long zoomLeftTime = parseDate.getTime(); // zoom 나간 시간의 milliseconds 구하기
+            int korOffset = TimeZone.getTimeZone("Asia/Seoul").getRawOffset();  // offset
+
+            Long times = zoomLeftTime + korOffset;// 시간 계산
+
+            convertedDate = format.format(times);// 계산한 시간을 다시 날짜+시간 형식(String)으로 변경 
+        } catch (ParseException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+        return convertedDate;
+    }
+출처: https://turing0809.tistory.com/67 [정리라도 하자:티스토리]
