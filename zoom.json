@@ -59,5 +59,4 @@ public class TestController extends BaseController{
         }
 
         return convertedDate;
-    }
-출처: https://turing0809.tistory.com/67 [정리라도 하자:티스토리]
+}
